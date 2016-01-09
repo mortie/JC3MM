@@ -1,4 +1,4 @@
-﻿namespace JC3MP
+﻿namespace JC3MM
 {
 	partial class MainWindow
 	{
@@ -30,9 +30,9 @@
 		{
 			this.btnAddMod = new System.Windows.Forms.Button();
 			this.modList = new System.Windows.Forms.ListBox();
-			this.btnRename = new System.Windows.Forms.Button();
-			this.BtnRemove = new System.Windows.Forms.Button();
+			this.btnRemove = new System.Windows.Forms.Button();
 			this.btnBuildMods = new System.Windows.Forms.Button();
+			this.backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
 			this.SuspendLayout();
 			// 
 			// btnAddMod
@@ -53,23 +53,15 @@
 			this.modList.Size = new System.Drawing.Size(261, 316);
 			this.modList.TabIndex = 1;
 			// 
-			// btnRename
+			// btnRemove
 			// 
-			this.btnRename.Location = new System.Drawing.Point(199, 13);
-			this.btnRename.Name = "btnRename";
-			this.btnRename.Size = new System.Drawing.Size(75, 23);
-			this.btnRename.TabIndex = 2;
-			this.btnRename.Text = "Rename";
-			this.btnRename.UseVisualStyleBackColor = true;
-			// 
-			// BtnRemove
-			// 
-			this.BtnRemove.Location = new System.Drawing.Point(118, 13);
-			this.BtnRemove.Name = "BtnRemove";
-			this.BtnRemove.Size = new System.Drawing.Size(75, 23);
-			this.BtnRemove.TabIndex = 3;
-			this.BtnRemove.Text = "Remove";
-			this.BtnRemove.UseVisualStyleBackColor = true;
+			this.btnRemove.Location = new System.Drawing.Point(198, 13);
+			this.btnRemove.Name = "btnRemove";
+			this.btnRemove.Size = new System.Drawing.Size(75, 23);
+			this.btnRemove.TabIndex = 3;
+			this.btnRemove.Text = "Remove";
+			this.btnRemove.UseVisualStyleBackColor = true;
+			this.btnRemove.Click += new System.EventHandler(this.btnRemove_Click);
 			// 
 			// btnBuildMods
 			// 
@@ -87,8 +79,7 @@
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(286, 398);
 			this.Controls.Add(this.btnBuildMods);
-			this.Controls.Add(this.BtnRemove);
-			this.Controls.Add(this.btnRename);
+			this.Controls.Add(this.btnRemove);
 			this.Controls.Add(this.modList);
 			this.Controls.Add(this.btnAddMod);
 			this.Name = "MainWindow";
@@ -101,9 +92,9 @@
 
 		private System.Windows.Forms.Button btnAddMod;
 		private System.Windows.Forms.ListBox modList;
-		private System.Windows.Forms.Button btnRename;
-		private System.Windows.Forms.Button BtnRemove;
+		private System.Windows.Forms.Button btnRemove;
 		private System.Windows.Forms.Button btnBuildMods;
+		private System.ComponentModel.BackgroundWorker backgroundWorker1;
 	}
 }
 

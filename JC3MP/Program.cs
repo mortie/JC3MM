@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace JC3MP
+namespace JC3MM
 {
 	static class Program
 	{

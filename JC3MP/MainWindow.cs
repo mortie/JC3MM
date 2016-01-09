@@ -3,15 +3,96 @@ using System.IO;
 using System.Windows.Forms;
 using System.IO.Compression;
 using System.Text.RegularExpressions;
+using System.Collections;
+using System.Collections.Generic;
 
-namespace JC3MP
+namespace JC3MM
 {
 	public partial class MainWindow : Form
 	{
+		private class Mod
+		{
+			public string ModPath { get; }
+
+			public Mod(string path)
+			{
+				this.ModPath = path;
+			}
+
+			public String DisplayName
+			{
+				get { return Path.GetFileNameWithoutExtension(ModPath); }
+			}
+
+			public String FileName
+			{
+				get { return Path.GetFileName(ModPath); }
+			}
+		}
+
+		private class ListDialog
+		{
+			private string caption;
+			private string desc;
+			private ArrayList strings;
+
+			public ListDialog(string caption, string desc, ArrayList strings)
+			{
+				this.caption = caption;
+				this.desc = desc;
+				this.strings = strings;
+			}
+
+			public int ShowDialog()
+			{
+				int W = 300;
+				int H = 300;
+				Form form = new Form();
+				form.Width = W;
+				form.Height = H;
+				form.Text = this.caption;
+				form.FormBorderStyle = FormBorderStyle.FixedSingle;
+				form.MaximizeBox = false;
+				form.MinimizeBox = false;
+
+				Label caption = new Label() { Top = 10, Left = 10 };
+				caption.Text = this.desc;
+				caption.AutoSize = true;
+				caption.MaximumSize = new System.Drawing.Size(W - 20, 0);
+				caption.Size = new System.Drawing.Size(caption.PreferredWidth, caption.PreferredHeight);
+
+				ListBox listBox = new ListBox() { Width = W - 40, Height = H - 100 - caption.Size.Height, Top = 20 + caption.Size.Height, Left = 10 };
+				Button btnOk = new Button() { Text = "OK", Left = W - 105, Top = H - 70, DialogResult = DialogResult.OK };
+				Button btnCancel = new Button() { Text = "Cancel", Left = 10, Top = H - 70, DialogResult = DialogResult.Cancel };
+
+				foreach (string str in strings)
+				{
+					listBox.Items.Add(str);
+				}
+				listBox.SelectedIndex = 0;
+
+				form.Controls.Add(caption);
+				form.Controls.Add(listBox);
+				form.Controls.Add(btnOk);
+				form.Controls.Add(btnCancel);
+
+				DialogResult result = form.ShowDialog();
+				if (result == DialogResult.OK)
+				{
+					return listBox.SelectedIndex;
+				}
+				else
+				{
+					return -1;
+				}
+			}
+		}
+
 		private static String dataPath = Environment.ExpandEnvironmentVariables("%APPDATA%\\JC3MM");
 		private static String modsPath = Path.Combine(dataPath, "mods");
 		private static String jc3Dir = getJC3Dir();
-		private static String dropzone = Path.Combine(jc3Dir, "dropzone");
+		private static String dropzoneDir = Path.Combine(jc3Dir, "dropzone");
+		private static ArrayList mods = new ArrayList();
 
 		public MainWindow()
 		{
@@ -27,14 +108,36 @@ namespace JC3MP
 
 			InitializeComponent();
 
-			drawModList();
+			updateModList();
 		}
 
 		//Click Handlers
 
 		private void btnAddMod_Click(object sender, EventArgs e)
 		{
-			addMod();
+			OpenFileDialog dialog = new OpenFileDialog();
+			dialog.InitialDirectory = Path.Combine(
+				Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+				"Downloads"
+			);
+			dialog.RestoreDirectory = true;
+			dialog.Filter = "Mod Files (*.zip)|*.zip";
+			dialog.Multiselect = true;
+
+			if (dialog.ShowDialog() != DialogResult.OK)
+			{
+				return;
+			}
+
+			foreach (string path in dialog.FileNames)
+			{
+				addMod(path);
+			}
+		}
+
+		private void btnRemove_Click(object sender, EventArgs e)
+		{
+			removeMod();
 		}
 
 		private void btnBuildMods_Click(object sender, EventArgs e)
@@ -44,32 +147,19 @@ namespace JC3MP
 
 		// Functionality
 
-		private void addMod()
+		private void addMod(string path)
 		{
-			OpenFileDialog dialog = new OpenFileDialog();
-			dialog.InitialDirectory = Path.Combine(
-				Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-				"Downloads"
-			);
-			dialog.RestoreDirectory = true;
-			dialog.Filter = "Mod Files (*.zip)|*.zip";
-
-			if (dialog.ShowDialog() != DialogResult.OK)
-			{
-				return;
-			}
-
-			String toPath = Path.Combine(modsPath, Path.GetFileName(dialog.FileName));
+			String toPath = Path.Combine(modsPath, Path.GetFileName(path));
 
 			try
 			{
-				File.Copy(dialog.FileName, toPath);
+				File.Copy(path, toPath);
 			}
 			catch (IOException ex)
 			{
 				if (File.Exists(toPath))
 				{
-					MessageBox.Show("Mod " + Path.GetFileName(dialog.FileName) + " already exists.");
+					MessageBox.Show("Mod " + Path.GetFileName(path) + " already exists.");
 				}
 				else
 				{
@@ -78,52 +168,206 @@ namespace JC3MP
 				return;
 			}
 
-			drawModList();
+			updateModList();
+		}
+
+		void removeMod()
+		{
+			if (modList.SelectedIndex == -1)
+			{
+				return;
+			}
+
+			Mod mod = (Mod)mods[modList.SelectedIndex];
+
+			try
+			{
+				File.Delete(mod.ModPath);
+			}
+			catch (IOException ex)
+			{
+				MessageBox.Show(ex.ToString());
+			}
+
+			updateModList();
 		}
 
 		private void buildMods()
 		{
+			Console.WriteLine(dropzoneDir);
 			Cursor.Current = Cursors.WaitCursor;
 
 			//Clear dropzone
-			deldir(dropzone);
-			mkdir(dropzone);
+			rmdir(dropzoneDir);
+			mkdir(dropzoneDir);
 
-			string[] paths = Directory.GetFiles(modsPath);
+			//Prepare regex
+			Regex dropRelReg = new Regex(".*/dropzone/");
 
-			foreach (string path in paths)
+			//Keep track of what paths are owned by which mods
+			Dictionary<String, Mod> modFromPath = new Dictionary<String, Mod>();
+
+			foreach (Mod mod in mods)
 			{
-				Stream readStream = new FileStream(path, FileMode.Open);
-				ZipArchive archive = new ZipArchive(readStream, ZipArchiveMode.Read);
+				Cursor.Current = Cursors.WaitCursor;
 
-				foreach (ZipArchiveEntry ent in archive.Entries)
+				//Build mod, aborting if it failed
+				if (buildMod(mod, modFromPath) == false)
 				{
-					Stream stream = ent.Open();
-					Console.WriteLine(ent.FullName);
-					stream.Close();
+					Cursor.Current = Cursors.Default;
+					rmdir(dropzoneDir);
+					return;
 				}
-
-				readStream.Close();
-				Application.DoEvents();
 			}
 
 			Cursor.Current = Cursors.Default;
 			MessageBox.Show("Mods built.");
 		}
 
+		//Utility
+
+		//Draw the mods to the GUI
 		private void drawModList()
 		{
-			string[] paths = Directory.GetFiles(modsPath);
-
 			modList.Items.Clear();
-			foreach (string str in paths)
+			foreach (Mod mod in mods)
 			{
-				String name = Path.GetFileNameWithoutExtension(str);
-				modList.Items.Add(name);
+				modList.Items.Add(mod.DisplayName);
 			}
 		}
 
-		//Utility
+		//Update the list of mods
+		private void updateModList()
+		{
+			string[] paths = Directory.GetFiles(modsPath);
+
+			mods = new ArrayList();
+			foreach (string path in paths)
+			{
+				mods.Add(new Mod(path));
+			}
+
+			drawModList();
+		}
+
+		//Build mod to dropzone
+		private bool buildMod(Mod mod, Dictionary<string, Mod> modFromPath)
+		{
+			Console.WriteLine("building mod " + mod.DisplayName);
+			Stream readStream;
+			try
+			{
+				readStream = new FileStream(mod.ModPath, FileMode.Open);
+			}
+			catch (IOException ex)
+			{
+				MessageBox.Show(ex.Message);
+				return false;
+			}
+
+			ZipArchive archive = new ZipArchive(readStream, ZipArchiveMode.Read);
+
+			//Get dropzones
+			ArrayList dropzones = new ArrayList();
+			Regex rx = new Regex("^((.*/)?dropzone)");
+			foreach (ZipArchiveEntry ent in archive.Entries)
+			{
+				Match match = rx.Match(ent.FullName);
+				string zone = match.Groups[1].Value;
+				if (match.Success && !dropzones.Contains(zone))
+				{
+					dropzones.Add(zone);
+				}
+			}
+
+			//Get single dropzone
+			string dropzone = "";
+			if (dropzones.Count == 0)
+			{
+				readStream.Close();
+				MessageBox.Show("Mod " + mod.DisplayName + " has no dropzone.");
+				return false;
+			}
+			else if (dropzones.Count == 1)
+			{
+				dropzone = (string)dropzones[0];
+			}
+			else
+			{
+				string caption = mod.DisplayName + " has multiple options. Choose one.";
+				ListDialog dialog = new ListDialog(mod.DisplayName, caption, dropzones);
+				int i = dialog.ShowDialog();
+				if (i == -1)
+				{
+					readStream.Close();
+					return false;
+				}
+				else
+				{
+					dropzone = (string)dropzones[i];
+				}
+			}
+
+			foreach (ZipArchiveEntry ent in archive.Entries)
+			{
+				if (!ent.FullName.StartsWith(dropzone))
+				{
+					continue;
+				}
+
+				string relPath = ent.FullName.Replace(dropzone, "");
+				if (relPath[0] == '/')
+				{
+					relPath = relPath.Substring(1);
+				}
+
+				string outPath = Path.Combine(dropzoneDir, relPath);
+
+				//If it's a directory, create it
+				if (ent.FullName.EndsWith("/"))
+				{
+					Console.WriteLine("mkdir " + outPath);
+					mkdir(outPath);
+				}
+
+				//If not, write the file
+				else
+				{
+					//Check if mod collides with an existing mod
+					Mod collidesWith;
+					if (modFromPath.TryGetValue(relPath, out collidesWith))
+					{
+						readStream.Close();
+						MessageBox.Show(
+							"Mod '" + mod.DisplayName + "'" +
+							" collides with '" + collidesWith.DisplayName + "'."
+						);
+						return false;
+					}
+					modFromPath.Add(relPath, mod);
+
+					//Write entry to file
+					Console.WriteLine("write " + outPath);
+					Stream writeStream = File.Create(outPath);
+					Stream stream = ent.Open();
+					stream.CopyTo(writeStream);
+					writeStream.Close();
+					stream.Close();
+				}
+			}
+
+			readStream.Close();
+			return true;
+		}
+
+		//Delete directory if it exists
+		private void rmdir(String path)
+		{
+			if (Directory.Exists(path))
+			{
+				Directory.Delete(path, true);
+			}
+		}
 
 		//Create directory if not exists
 		private void mkdir(String path)
@@ -134,14 +378,6 @@ namespace JC3MP
 			}
 		}
 
-		//Delete directory if it exists
-		private void deldir(String path)
-		{
-			if (Directory.Exists(path))
-			{
-				Directory.Delete(path, true);
-			}
-		}
 
 		//Get JC3 install location
 		private static String getJC3Dir()

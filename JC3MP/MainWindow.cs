@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Text.RegularExpressions;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace JC3MM
 {
@@ -92,6 +93,7 @@ namespace JC3MM
 		private static String modsPath = Path.Combine(dataPath, "mods");
 		private static String jc3Dir = getJC3Dir();
 		private static String dropzoneDir = Path.Combine(jc3Dir, "dropzone");
+		private static String dropzoneDirBak = Path.Combine(jc3Dir, "dropzone.bak");
 		private static ArrayList mods = new ArrayList();
 
 		public MainWindow()
@@ -198,7 +200,8 @@ namespace JC3MM
 			Cursor.Current = Cursors.WaitCursor;
 
 			//Clear dropzone
-			rmdir(dropzoneDir);
+			rmdir(dropzoneDirBak);
+			Directory.Move(dropzoneDir, dropzoneDirBak);
 			mkdir(dropzoneDir);
 
 			//Prepare regex
@@ -216,6 +219,7 @@ namespace JC3MM
 				{
 					Cursor.Current = Cursors.Default;
 					rmdir(dropzoneDir);
+					Directory.Move(dropzoneDirBak, dropzoneDir);
 					return;
 				}
 			}

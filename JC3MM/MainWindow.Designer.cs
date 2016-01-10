@@ -74,7 +74,6 @@
 			this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
 			this.MaximizeBox = false;
 			this.Name = "MainWindow";
-			this.Load += new System.EventHandler(this.MainWindow_Load);
 			this.ResumeLayout(false);
 
 		}

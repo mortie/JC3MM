@@ -107,6 +107,7 @@ namespace JC3MM
 			//Create data directories
 			mkdir(dataPath);
 			mkdir(modsPath);
+			mkdir(dropzoneDir);
 
 			InitializeComponent();
 
@@ -450,11 +451,6 @@ namespace JC3MM
 			}
 
 			return dialog.SelectedPath;
-		}
-
-		private void MainWindow_Load(object sender, EventArgs e)
-		{
-
 		}
 	}
 }

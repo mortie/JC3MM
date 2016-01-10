@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JC3MM", "JC3MP\JC3MM.csproj", "{C476F5E7-3527-4D0E-A91F-442E2396BA53}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JC3MM", "JC3MM\JC3MM.csproj", "{C476F5E7-3527-4D0E-A91F-442E2396BA53}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

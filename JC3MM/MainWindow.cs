@@ -451,5 +451,10 @@ namespace JC3MM
 
 			return dialog.SelectedPath;
 		}
+
+		private void MainWindow_Load(object sender, EventArgs e)
+		{
+
+		}
 	}
 }

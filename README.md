@@ -1,6 +1,10 @@
 # Just Cause 3 Mod Manager
 
-This is a mod manager for Just Cause 3.
+JC3MM, or Just Cause 3 Mod Manager, is a mod manager for Just Cause 3.
+
+JC3MM is designed to work out of the box with most of the mods at <justcause3mods.com>.
+
+![Main Window](https://raw.githubusercontent.com/mortie/JC3MM/master/Screenshots/application.png)
 
 ## Install
 
